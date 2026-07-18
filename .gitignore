@@ -1,0 +1,19 @@
+# Arduino / build artifacts
+build/
+*.hex
+*.bin
+*.elf
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+*.swp
+
+# Local tooling / session data (never publish)
+.memsearch/
+
+# Internal design docs (kept local, not published)
+docs/
