@@ -74,14 +74,22 @@ void setup() {
   rc.enableReceive(PIN_GDO0);
 
   // captured fixed codes (fan ignores the low-byte counter)
-  addBtn("off", 1689517572UL);
-  addBtn("1",   1689516028UL);
-  addBtn("2",   1689515877UL);
-  addBtn("3",   1689515743UL);
-  addBtn("4",   1689515592UL);
-  addBtn("5",   1689515442UL);
-  addBtn("6",   1689515307UL);
-  addBtn("rev", 1689515157UL);
+  addBtn("off",   1689517572UL);   // 0x64B3FE04
+  addBtn("1",     1689516028UL);   // speed 1 / on
+  addBtn("2",     1689515877UL);
+  addBtn("3",     1689515743UL);
+  addBtn("4",     1689515592UL);
+  addBtn("5",     1689515442UL);
+  addBtn("6",     1689515307UL);
+  addBtn("rev",   1689515157UL);   // reverse
+  addBtn("wind",  1689517513UL);   // wind / breeze mode
+  addBtn("light", 1689516733UL);   // light on/off
+  addBtn("dim-",  1689517273UL);   // dimmer down
+  addBtn("dim+",  1689517003UL);   // dimmer up
+  addBtn("1hoff", 1689517753UL);   // 1-hour off timer
+  addBtn("2hoff", 1689516582UL);   // 2-hour off timer
+  addBtn("4hoff", 1689516177UL);   // 4-hour off timer
+  addBtn("8hoff", 1689516417UL);   // 8-hour off timer
 
   help();
   listButtons();
@@ -122,6 +130,7 @@ void handleReceived() {
 
 void handleLine(String line) {
   line.trim();
+  line.toLowerCase();   // button names are case-insensitive
   if (!line.length()) return;
 
   if (line == "list") { listButtons(); return; }

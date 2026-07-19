@@ -72,6 +72,14 @@ Incoming signals print as `[rx] <code>` so you can read new buttons.
 | speed 5 | 1689515442 | 0x64B3F5B2 |
 | speed 6 | 1689515307 | 0x64B3F52B |
 | reverse | 1689515157 | 0x64B3F495 |
+| wind / breeze | 1689517513 | 0x64B3FDC9 |
+| light | 1689516733 | 0x64B3FABD |
+| dim− | 1689517273 | 0x64B3FCD9 |
+| dim+ | 1689517003 | 0x64B3FBCB |
+| 1h off timer | 1689517753 | 0x64B3FEB9 |
+| 2h off timer | 1689516582 | 0x64B3FA26 |
+| 4h off timer | 1689516177 | 0x64B3F891 |
+| 8h off timer | 1689516417 | 0x64B3F981 |
 
 ## Gotchas (learned the hard way)
 - **Call `ELECHOUSE_cc1101.Init()` before reading the chip.** Without it,
