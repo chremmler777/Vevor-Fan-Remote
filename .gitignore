@@ -17,3 +17,7 @@ Thumbs.db
 
 # Internal design docs (kept local, not published)
 docs/
+
+# Secrets -- WiFi / MQTT credentials (NEVER publish)
+secrets.h
+fan_remote/secrets.h

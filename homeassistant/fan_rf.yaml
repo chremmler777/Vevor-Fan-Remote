@@ -1,0 +1,170 @@
+# ============================================================
+#  Fan RF Bridge -- Home Assistant config
+#  1) Replace ESP_IP below with your ESP32's IP (serial "WiFi OK, IP=...").
+#  2) Paste this into configuration.yaml.
+#  3) Developer Tools -> YAML -> CHECK CONFIGURATION, then RESTART.
+#  Creates a button.* entity per fan button (masterbedroom / patio).
+# ============================================================
+
+rest_command:
+  fan_send:
+    url: "http://ESP_IP/send?fan={{ fan }}&btn={{ btn | urlencode }}&n={{ n | default(1) }}"
+    method: GET
+
+template:
+  - button:
+      - name: "masterbedroom 1"
+        unique_id: fanrc_masterbedroom_1
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "1" }
+      - name: "masterbedroom 2"
+        unique_id: fanrc_masterbedroom_2
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "2" }
+      - name: "masterbedroom 3"
+        unique_id: fanrc_masterbedroom_3
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "3" }
+      - name: "masterbedroom 4"
+        unique_id: fanrc_masterbedroom_4
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "4" }
+      - name: "masterbedroom 5"
+        unique_id: fanrc_masterbedroom_5
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "5" }
+      - name: "masterbedroom 6"
+        unique_id: fanrc_masterbedroom_6
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "6" }
+      - name: "masterbedroom off"
+        unique_id: fanrc_masterbedroom_off
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "off" }
+      - name: "masterbedroom rev"
+        unique_id: fanrc_masterbedroom_rev
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "rev" }
+      - name: "masterbedroom home"
+        unique_id: fanrc_masterbedroom_home
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "home" }
+      - name: "masterbedroom wind"
+        unique_id: fanrc_masterbedroom_wind
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "wind" }
+      - name: "masterbedroom light"
+        unique_id: fanrc_masterbedroom_light
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "light" }
+      - name: "masterbedroom dim-"
+        unique_id: fanrc_masterbedroom_dim_minus
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "dim-" }
+      - name: "masterbedroom dim+"
+        unique_id: fanrc_masterbedroom_dim_plus
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "dim+" }
+      - name: "masterbedroom 1hoff"
+        unique_id: fanrc_masterbedroom_1hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "1hoff" }
+      - name: "masterbedroom 2hoff"
+        unique_id: fanrc_masterbedroom_2hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "2hoff" }
+      - name: "masterbedroom 4hoff"
+        unique_id: fanrc_masterbedroom_4hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "4hoff" }
+      - name: "masterbedroom 8hoff"
+        unique_id: fanrc_masterbedroom_8hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: masterbedroom, btn: "8hoff" }
+      - name: "patio 1"
+        unique_id: fanrc_patio_1
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "1" }
+      - name: "patio 2"
+        unique_id: fanrc_patio_2
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "2" }
+      - name: "patio 3"
+        unique_id: fanrc_patio_3
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "3" }
+      - name: "patio 4"
+        unique_id: fanrc_patio_4
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "4" }
+      - name: "patio 5"
+        unique_id: fanrc_patio_5
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "5" }
+      - name: "patio 6"
+        unique_id: fanrc_patio_6
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "6" }
+      - name: "patio off"
+        unique_id: fanrc_patio_off
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "off" }
+      - name: "patio rev"
+        unique_id: fanrc_patio_rev
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "rev" }
+      - name: "patio home"
+        unique_id: fanrc_patio_home
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "home" }
+      - name: "patio wind"
+        unique_id: fanrc_patio_wind
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "wind" }
+      - name: "patio 1hoff"
+        unique_id: fanrc_patio_1hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "1hoff" }
+      - name: "patio 2hoff"
+        unique_id: fanrc_patio_2hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "2hoff" }
+      - name: "patio 4hoff"
+        unique_id: fanrc_patio_4hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "4hoff" }
+      - name: "patio 8hoff"
+        unique_id: fanrc_patio_8hoff
+        press:
+          - action: rest_command.fan_send
+            data: { fan: patio, btn: "8hoff" }
