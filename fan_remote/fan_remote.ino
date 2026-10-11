@@ -15,9 +15,9 @@ String g_lastAction = "(none)";
 const int CODE_BITS  = 32;
 const int CODE_PROTO = 2;
 const int CODE_PULSE = 498;
-const int MAX_BTN    = 40;
+const int MAX_BTN    = 64;
 const int MAX_CODES  = 10;   // a button's rolling cycle is ~8 states
-const int STORE_VER  = 4;    // bump if struct layout changes (forces reseed)
+const int STORE_VER  = 5;    // bump if struct layout changes (forces reseed)
 
 struct Btn {
   char fan[16];
@@ -264,9 +264,21 @@ void seedDefaults() {
   i = ensureBtnInFan("patio", "2hoff"); addCodeToBtn(i, 1561872896UL); addCodeToBtn(i, 1561873017UL); addCodeToBtn(i, 1561873002UL); addCodeToBtn(i, 1561872987UL); addCodeToBtn(i, 1561872972UL); addCodeToBtn(i, 1561872957UL); addCodeToBtn(i, 1561872942UL); addCodeToBtn(i, 1561872927UL);
   i = ensureBtnInFan("patio", "4hoff"); addCodeToBtn(i, 1561872627UL); addCodeToBtn(i, 1561872612UL); addCodeToBtn(i, 1561872552UL); addCodeToBtn(i, 1561872537UL); addCodeToBtn(i, 1561872522UL); addCodeToBtn(i, 1561872597UL); addCodeToBtn(i, 1561872582UL); addCodeToBtn(i, 1561872567UL);
   i = ensureBtnInFan("patio", "8hoff"); addCodeToBtn(i, 1561872777UL); addCodeToBtn(i, 1561872882UL); addCodeToBtn(i, 1561872867UL); addCodeToBtn(i, 1561872852UL); addCodeToBtn(i, 1561872837UL); addCodeToBtn(i, 1561872822UL); addCodeToBtn(i, 1561872807UL); addCodeToBtn(i, 1561872792UL);
+  i = ensureBtnInFan("livingroom", "6"); addCodeToBtn(i, 3841979759UL); addCodeToBtn(i, 3841979728UL); addCodeToBtn(i, 3841979713UL); addCodeToBtn(i, 3841979698UL); addCodeToBtn(i, 3841979683UL); addCodeToBtn(i, 3841979668UL); addCodeToBtn(i, 3841979653UL); addCodeToBtn(i, 3841979774UL);
+  i = ensureBtnInFan("livingroom", "5"); addCodeToBtn(i, 3841979804UL);
+  i = ensureBtnInFan("livingroom", "4"); addCodeToBtn(i, 3841979908UL);
+  i = ensureBtnInFan("livingroom", "3"); addCodeToBtn(i, 3841980149UL);
+  i = ensureBtnInFan("livingroom", "2"); addCodeToBtn(i, 3841980269UL);
+  i = ensureBtnInFan("livingroom", "1"); addCodeToBtn(i, 3841980374UL); addCodeToBtn(i, 3841980359UL); addCodeToBtn(i, 3841980344UL); addCodeToBtn(i, 3841980329UL); addCodeToBtn(i, 3841980314UL); addCodeToBtn(i, 3841980299UL); addCodeToBtn(i, 3841980389UL);
+  i = ensureBtnInFan("livingroom", "off"); addCodeToBtn(i, 3841982069UL); addCodeToBtn(i, 3841982039UL); addCodeToBtn(i, 3841982009UL); addCodeToBtn(i, 3841981979UL);
+  i = ensureBtnInFan("livingroom", "rev"); addCodeToBtn(i, 3841979639UL); addCodeToBtn(i, 3841979624UL); addCodeToBtn(i, 3841979609UL); addCodeToBtn(i, 3841979594UL); addCodeToBtn(i, 3841979579UL); addCodeToBtn(i, 3841979564UL); addCodeToBtn(i, 3841979549UL); addCodeToBtn(i, 3841979534UL);
+  i = ensureBtnInFan("livingroom", "light"); addCodeToBtn(i, 3841981139UL); addCodeToBtn(i, 3841981124UL); addCodeToBtn(i, 3841981109UL); addCodeToBtn(i, 3841981094UL); addCodeToBtn(i, 3841981079UL); addCodeToBtn(i, 3841981064UL); addCodeToBtn(i, 3841981169UL); addCodeToBtn(i, 3841981154UL);
+  i = ensureBtnInFan("livingroom", "dim+"); addCodeToBtn(i, 3841981364UL); addCodeToBtn(i, 3841981349UL); addCodeToBtn(i, 3841981334UL); addCodeToBtn(i, 3841981319UL); addCodeToBtn(i, 3841981424UL); addCodeToBtn(i, 3841981409UL); addCodeToBtn(i, 3841981394UL); addCodeToBtn(i, 3841981379UL);
+  i = ensureBtnInFan("livingroom", "dim-"); addCodeToBtn(i, 3841981589UL); addCodeToBtn(i, 3841981574UL); addCodeToBtn(i, 3841981695UL); addCodeToBtn(i, 3841981664UL); addCodeToBtn(i, 3841981649UL); addCodeToBtn(i, 3841981634UL); addCodeToBtn(i, 3841981619UL); addCodeToBtn(i, 3841981604UL);
+  i = ensureBtnInFan("livingroom", "wind"); addCodeToBtn(i, 3841981904UL); addCodeToBtn(i, 3841981889UL); addCodeToBtn(i, 3841981874UL); addCodeToBtn(i, 3841981859UL); addCodeToBtn(i, 3841981844UL); addCodeToBtn(i, 3841981829UL); addCodeToBtn(i, 3841981950UL); addCodeToBtn(i, 3841981935UL);
   strncpy(currentFan, "masterbedroom", 15); currentFan[15] = 0;
   saveAll();
-  Serial.println(F("seeded both fans (masterbedroom + patio) with full button cycles"));
+  Serial.println(F("seeded all fans (masterbedroom + patio + livingroom) with full button cycles"));
 }
 
 // ---------- rx ----------
@@ -429,6 +441,7 @@ void handleRoot() {
 
 void wifiConnect() {
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);   // modem sleep made HTTP replies take seconds on a weak link
   WiFi.setHostname(HOSTNAME);
 #if USE_STATIC_IP
   IPAddress ip(STATIC_IP), gw(GATEWAY_IP), sn(SUBNET_MASK), dns(DNS_IP);

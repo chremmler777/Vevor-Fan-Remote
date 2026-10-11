@@ -1,170 +1,333 @@
-# ============================================================
-#  Fan RF Bridge -- Home Assistant config
-#  1) Replace ESP_IP below with your ESP32's IP (serial "WiFi OK, IP=...").
-#  2) Paste this into configuration.yaml.
-#  3) Developer Tools -> YAML -> CHECK CONFIGURATION, then RESTART.
-#  Creates a button.* entity per fan button (masterbedroom / patio).
-# ============================================================
+# Fan RF Bridge -- native HA entities (fans, light, timers) over one-way 433MHz RF.
+# Deployed to /config/packages/fan_rf.yaml. All state is optimistic (last-sent).
+# Uses the MODERN `template:` integration (HA 2026.x) -- legacy `platform: template` no longer creates entities.
 
 rest_command:
   fan_send:
-    url: "http://ESP_IP/send?fan={{ fan }}&btn={{ btn | urlencode }}&n={{ n | default(1) }}"
+    url: "http://192.168.1.30/send?fan={{ fan }}&btn={{ btn | urlencode }}&n={{ n | default(1) }}"
     method: GET
+    timeout: 20   # ESP can take seconds to answer on a weak WiFi link; default 10s dropped commands
+
+input_number:
+  masterbedroom_speed: { name: masterbedroom fan speed, min: 0, max: 6, step: 1 }
+  patio_speed:        { name: patio fan speed,        min: 0, max: 6, step: 1 }
+  livingroom_speed:   { name: livingroom fan speed,   min: 0, max: 6, step: 1 }
+
+input_boolean:
+  masterbedroom_reverse: { name: masterbedroom fan reverse }
+  patio_reverse:         { name: patio fan reverse }
+  masterbedroom_light:   { name: masterbedroom light state }
+  livingroom_reverse:    { name: livingroom fan reverse }
+  livingroom_light:      { name: livingroom light state }
+
+input_select:
+  masterbedroom_preset: { name: masterbedroom fan preset, options: [normal, wind, home], initial: normal }
+  patio_preset:         { name: patio fan preset,         options: [normal, wind, home], initial: normal }
+  livingroom_preset:    { name: livingroom fan preset,    options: [normal, wind], initial: normal }
+  masterbedroom_timer:  { name: masterbedroom sleep timer, options: ['1 hour', '2 hours', '4 hours', '8 hours'] }
+  patio_timer:          { name: patio sleep timer,         options: ['1 hour', '2 hours', '4 hours', '8 hours'] }
 
 template:
-  - button:
-      - name: "masterbedroom 1"
-        unique_id: fanrc_masterbedroom_1
-        press:
+  - fan:
+      - name: masterbedroom
+        unique_id: fanrf_masterbedroom
+        state: "{{ 'on' if states('input_number.masterbedroom_speed')|int(0) > 0 else 'off' }}"
+        percentage: "{{ (states('input_number.masterbedroom_speed')|int(0) / 6 * 100) | round(0) }}"
+        speed_count: 6
+        direction: "{{ 'reverse' if is_state('input_boolean.masterbedroom_reverse','on') else 'forward' }}"
+        preset_modes: [wind, home]
+        preset_mode: "{{ states('input_select.masterbedroom_preset') if states('input_select.masterbedroom_preset') in ['wind','home'] else none }}"
+        set_percentage:
+          - variables:
+              spd: "{{ 0 if percentage == 0 else [[ (percentage / 100 * 6) | round(0) | int, 1 ] | max, 6] | min }}"
+          - action: input_number.set_value
+            target: { entity_id: input_number.masterbedroom_speed }
+            data: { value: "{{ spd }}" }
+          - action: input_select.select_option
+            target: { entity_id: input_select.masterbedroom_preset }
+            data: { option: normal }
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "1" }
-      - name: "masterbedroom 2"
-        unique_id: fanrc_masterbedroom_2
-        press:
+            data: { fan: masterbedroom, btn: "{{ 'off' if spd == 0 else spd }}" }
+        turn_on:
+          - variables:
+              spd: "{{ [ states('input_number.masterbedroom_speed')|int(0), 1 ] | max }}"
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "2" }
-      - name: "masterbedroom 3"
-        unique_id: fanrc_masterbedroom_3
-        press:
-          - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "3" }
-      - name: "masterbedroom 4"
-        unique_id: fanrc_masterbedroom_4
-        press:
-          - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "4" }
-      - name: "masterbedroom 5"
-        unique_id: fanrc_masterbedroom_5
-        press:
-          - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "5" }
-      - name: "masterbedroom 6"
-        unique_id: fanrc_masterbedroom_6
-        press:
-          - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "6" }
-      - name: "masterbedroom off"
-        unique_id: fanrc_masterbedroom_off
-        press:
+            data: { fan: masterbedroom, btn: "{{ spd }}" }
+          - action: input_number.set_value
+            target: { entity_id: input_number.masterbedroom_speed }
+            data: { value: "{{ spd }}" }
+        turn_off:
           - action: rest_command.fan_send
             data: { fan: masterbedroom, btn: "off" }
-      - name: "masterbedroom rev"
-        unique_id: fanrc_masterbedroom_rev
-        press:
+          - action: input_number.set_value
+            target: { entity_id: input_number.masterbedroom_speed }
+            data: { value: 0 }
+        set_direction:
+          - choose:
+              - conditions: "{{ direction != ('reverse' if is_state('input_boolean.masterbedroom_reverse','on') else 'forward') }}"
+                sequence:
+                  - action: rest_command.fan_send
+                    data: { fan: masterbedroom, btn: "rev" }
+                  - action: input_boolean.toggle
+                    target: { entity_id: input_boolean.masterbedroom_reverse }
+        set_preset_mode:
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "rev" }
-      - name: "masterbedroom home"
-        unique_id: fanrc_masterbedroom_home
-        press:
+            data: { fan: masterbedroom, btn: "{{ preset_mode }}" }
+          - action: input_select.select_option
+            target: { entity_id: input_select.masterbedroom_preset }
+            data: { option: "{{ preset_mode }}" }
+      - name: patio
+        unique_id: fanrf_patio
+        state: "{{ 'on' if states('input_number.patio_speed')|int(0) > 0 else 'off' }}"
+        percentage: "{{ (states('input_number.patio_speed')|int(0) / 6 * 100) | round(0) }}"
+        speed_count: 6
+        direction: "{{ 'reverse' if is_state('input_boolean.patio_reverse','on') else 'forward' }}"
+        preset_modes: [wind, home]
+        preset_mode: "{{ states('input_select.patio_preset') if states('input_select.patio_preset') in ['wind','home'] else none }}"
+        set_percentage:
+          - variables:
+              spd: "{{ 0 if percentage == 0 else [[ (percentage / 100 * 6) | round(0) | int, 1 ] | max, 6] | min }}"
+          - action: input_number.set_value
+            target: { entity_id: input_number.patio_speed }
+            data: { value: "{{ spd }}" }
+          - action: input_select.select_option
+            target: { entity_id: input_select.patio_preset }
+            data: { option: normal }
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "home" }
-      - name: "masterbedroom wind"
-        unique_id: fanrc_masterbedroom_wind
-        press:
+            data: { fan: patio, btn: "{{ 'off' if spd == 0 else spd }}" }
+        turn_on:
+          - variables:
+              spd: "{{ [ states('input_number.patio_speed')|int(0), 1 ] | max }}"
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "wind" }
-      - name: "masterbedroom light"
-        unique_id: fanrc_masterbedroom_light
-        press:
+            data: { fan: patio, btn: "{{ spd }}" }
+          - action: input_number.set_value
+            target: { entity_id: input_number.patio_speed }
+            data: { value: "{{ spd }}" }
+        turn_off:
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "light" }
-      - name: "masterbedroom dim-"
-        unique_id: fanrc_masterbedroom_dim_minus
-        press:
+            data: { fan: patio, btn: "off" }
+          - action: input_number.set_value
+            target: { entity_id: input_number.patio_speed }
+            data: { value: 0 }
+        set_direction:
+          - choose:
+              - conditions: "{{ direction != ('reverse' if is_state('input_boolean.patio_reverse','on') else 'forward') }}"
+                sequence:
+                  - action: rest_command.fan_send
+                    data: { fan: patio, btn: "rev" }
+                  - action: input_boolean.toggle
+                    target: { entity_id: input_boolean.patio_reverse }
+        set_preset_mode:
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "dim-" }
-      - name: "masterbedroom dim+"
-        unique_id: fanrc_masterbedroom_dim_plus
+            data: { fan: patio, btn: "{{ preset_mode }}" }
+          - action: input_select.select_option
+            target: { entity_id: input_select.patio_preset }
+            data: { option: "{{ preset_mode }}" }
+      - name: livingroom
+        unique_id: fanrf_livingroom
+        state: "{{ 'on' if states('input_number.livingroom_speed')|int(0) > 0 else 'off' }}"
+        percentage: "{{ (states('input_number.livingroom_speed')|int(0) / 6 * 100) | round(0) }}"
+        speed_count: 6
+        direction: "{{ 'reverse' if is_state('input_boolean.livingroom_reverse','on') else 'forward' }}"
+        preset_modes: [wind]
+        preset_mode: "{{ states('input_select.livingroom_preset') if states('input_select.livingroom_preset') in ['wind'] else none }}"
+        set_percentage:
+          - variables:
+              spd: "{{ 0 if percentage == 0 else [[ (percentage / 100 * 6) | round(0) | int, 1 ] | max, 6] | min }}"
+          - action: input_number.set_value
+            target: { entity_id: input_number.livingroom_speed }
+            data: { value: "{{ spd }}" }
+          - action: input_select.select_option
+            target: { entity_id: input_select.livingroom_preset }
+            data: { option: normal }
+          - action: rest_command.fan_send
+            data: { fan: livingroom, btn: "{{ 'off' if spd == 0 else spd }}" }
+        turn_on:
+          - variables:
+              spd: "{{ [ states('input_number.livingroom_speed')|int(0), 1 ] | max }}"
+          - action: rest_command.fan_send
+            data: { fan: livingroom, btn: "{{ spd }}" }
+          - action: input_number.set_value
+            target: { entity_id: input_number.livingroom_speed }
+            data: { value: "{{ spd }}" }
+        turn_off:
+          - action: rest_command.fan_send
+            data: { fan: livingroom, btn: "off" }
+          - action: input_number.set_value
+            target: { entity_id: input_number.livingroom_speed }
+            data: { value: 0 }
+        set_direction:
+          - choose:
+              - conditions: "{{ direction != ('reverse' if is_state('input_boolean.livingroom_reverse','on') else 'forward') }}"
+                sequence:
+                  - action: rest_command.fan_send
+                    data: { fan: livingroom, btn: "rev" }
+                  - action: input_boolean.toggle
+                    target: { entity_id: input_boolean.livingroom_reverse }
+        set_preset_mode:
+          - action: rest_command.fan_send
+            data: { fan: livingroom, btn: "{{ preset_mode }}" }
+          - action: input_select.select_option
+            target: { entity_id: input_select.livingroom_preset }
+            data: { option: "{{ preset_mode }}" }
+  - button:
+      - name: "masterbedroom light dim up"
+        unique_id: fanrf_mb_dim_up
         press:
           - action: rest_command.fan_send
             data: { fan: masterbedroom, btn: "dim+" }
-      - name: "masterbedroom 1hoff"
-        unique_id: fanrc_masterbedroom_1hoff
+      - name: "masterbedroom light dim down"
+        unique_id: fanrf_mb_dim_down
         press:
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "1hoff" }
-      - name: "masterbedroom 2hoff"
-        unique_id: fanrc_masterbedroom_2hoff
+            data: { fan: masterbedroom, btn: "dim-" }
+      - name: "livingroom light dim up"
+        unique_id: fanrf_lr_dim_up
         press:
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "2hoff" }
-      - name: "masterbedroom 4hoff"
-        unique_id: fanrc_masterbedroom_4hoff
+            data: { fan: livingroom, btn: "dim+" }
+      - name: "livingroom light dim down"
+        unique_id: fanrf_lr_dim_down
         press:
           - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "4hoff" }
-      - name: "masterbedroom 8hoff"
-        unique_id: fanrc_masterbedroom_8hoff
-        press:
-          - action: rest_command.fan_send
-            data: { fan: masterbedroom, btn: "8hoff" }
-      - name: "patio 1"
-        unique_id: fanrc_patio_1
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "1" }
-      - name: "patio 2"
-        unique_id: fanrc_patio_2
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "2" }
-      - name: "patio 3"
-        unique_id: fanrc_patio_3
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "3" }
-      - name: "patio 4"
-        unique_id: fanrc_patio_4
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "4" }
-      - name: "patio 5"
-        unique_id: fanrc_patio_5
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "5" }
-      - name: "patio 6"
-        unique_id: fanrc_patio_6
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "6" }
-      - name: "patio off"
-        unique_id: fanrc_patio_off
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "off" }
-      - name: "patio rev"
-        unique_id: fanrc_patio_rev
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "rev" }
-      - name: "patio home"
-        unique_id: fanrc_patio_home
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "home" }
-      - name: "patio wind"
-        unique_id: fanrc_patio_wind
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "wind" }
-      - name: "patio 1hoff"
-        unique_id: fanrc_patio_1hoff
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "1hoff" }
-      - name: "patio 2hoff"
-        unique_id: fanrc_patio_2hoff
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "2hoff" }
-      - name: "patio 4hoff"
-        unique_id: fanrc_patio_4hoff
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "4hoff" }
-      - name: "patio 8hoff"
-        unique_id: fanrc_patio_8hoff
-        press:
-          - action: rest_command.fan_send
-            data: { fan: patio, btn: "8hoff" }
+            data: { fan: livingroom, btn: "dim-" }
+  - light:
+      - name: "masterbedroom fan light"
+        unique_id: fanrf_masterbedroom_light
+        state: "{{ is_state('input_boolean.masterbedroom_light', 'on') }}"
+        turn_on:
+          - choose:
+              - conditions: "{{ is_state('input_boolean.masterbedroom_light', 'off') }}"
+                sequence:
+                  - action: rest_command.fan_send
+                    data: { fan: masterbedroom, btn: "light" }
+                  - action: input_boolean.turn_on
+                    target: { entity_id: input_boolean.masterbedroom_light }
+        turn_off:
+          - choose:
+              - conditions: "{{ is_state('input_boolean.masterbedroom_light', 'on') }}"
+                sequence:
+                  - action: rest_command.fan_send
+                    data: { fan: masterbedroom, btn: "light" }
+                  - action: input_boolean.turn_off
+                    target: { entity_id: input_boolean.masterbedroom_light }
+      - name: "livingroom fan light"
+        unique_id: fanrf_livingroom_light
+        state: "{{ is_state('input_boolean.livingroom_light', 'on') }}"
+        turn_on:
+          - choose:
+              - conditions: "{{ is_state('input_boolean.livingroom_light', 'off') }}"
+                sequence:
+                  - action: rest_command.fan_send
+                    data: { fan: livingroom, btn: "light" }
+                  - action: input_boolean.turn_on
+                    target: { entity_id: input_boolean.livingroom_light }
+        turn_off:
+          - choose:
+              - conditions: "{{ is_state('input_boolean.livingroom_light', 'on') }}"
+                sequence:
+                  - action: rest_command.fan_send
+                    data: { fan: livingroom, btn: "light" }
+                  - action: input_boolean.turn_off
+                    target: { entity_id: input_boolean.livingroom_light }
+
+automation:
+  - id: fanrf_sleep_timer
+    alias: "Fan RF: sleep-timer dropdown -> RF"
+    mode: queued
+    trigger:
+      - platform: state
+        entity_id:
+          - input_select.masterbedroom_timer
+          - input_select.patio_timer
+    condition:
+      - condition: template
+        value_template: "{{ trigger.from_state is not none and trigger.from_state.state not in ['unknown', 'unavailable'] }}"
+    action:
+      - variables:
+          fan: "{{ 'masterbedroom' if trigger.entity_id == 'input_select.masterbedroom_timer' else 'patio' }}"
+          btn: "{{ {'1 hour':'1hoff','2 hours':'2hoff','4 hours':'4hoff','8 hours':'8hoff'}[trigger.to_state.state] }}"
+      - action: rest_command.fan_send
+        data:
+          fan: "{{ fan }}"
+          btn: "{{ btn }}"
+
+  - id: patio_fan_follows_ac
+    alias: "Patio fan follows AC"
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: climate.living_room
+        attribute: hvac_action
+      - platform: homeassistant
+        event: start
+    action:
+      # Follow the COMPRESSOR, not the thermostat mode. hvac_mode sits at 'cool'
+      # all summer, so the old `states(...) not in ['off', ...]` test was true
+      # ~always and the fan ran constantly. hvac_action is 'cooling' ONLY while
+      # the AC is actually running. Still compares against the fan's current
+      # state first, so no redundant RF is sent.
+      - variables:
+          ac_running: "{{ state_attr('climate.living_room', 'hvac_action') == 'cooling' }}"
+          fan_on: "{{ is_state('fan.patio', 'on') }}"
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ ac_running and not fan_on }}"
+            sequence:
+              - action: fan.set_percentage
+                target: { entity_id: fan.patio }
+                data: { percentage: 50 }
+          - conditions:
+              - condition: template
+                value_template: "{{ not ac_running and fan_on }}"
+            sequence:
+              - action: fan.turn_off
+                target: { entity_id: fan.patio }
+
+  # Moes/Tuya TS0044 4-button Zigbee (ZHA) remote -> masterbedroom fan + light.
+  # Event-only device: fires zha_event with endpoint_id (1-4 = button) + command.
+  # This remote classifies taps inconsistently (a single tap often reports as a
+  # "double"), so each button triggers on ANY press (endpoint match only) and does
+  # exactly one job -> robust, no tap/double/hold ambiguity. Layout 1=TL,2=TR,3=BL,4=BR.
+  #   B1 top-left      light on/off toggle
+  #   B2 top-right     dim light UP
+  #   B3 bottom-left   fan on/off toggle (turns on at speed 3/6)
+  #   B4 bottom-right  dim light DOWN
+  - id: fanrf_ts0044_masterbedroom
+    alias: "Fan RF: Moes TS0044 remote -> masterbedroom"
+    mode: queued
+    max: 10
+    trigger:
+      - platform: event
+        event_type: zha_event
+        event_data:
+          device_ieee: "84:fd:27:ff:fe:8d:2b:ee"
+    action:
+      - choose:
+          # B1 top-left -> light on/off toggle
+          - conditions: "{{ trigger.event.data.endpoint_id == 1 }}"
+            sequence:
+              - action: light.toggle
+                target: { entity_id: light.masterbedroom_fan_light }
+          # B2 top-right -> dim light UP
+          - conditions: "{{ trigger.event.data.endpoint_id == 2 }}"
+            sequence:
+              - action: button.press
+                target: { entity_id: button.masterbedroom_light_dim_up }
+          # B3 bottom-left -> fan on/off toggle; turns on at speed 3/6 (50%)
+          - conditions: "{{ trigger.event.data.endpoint_id == 3 }}"
+            sequence:
+              - if: "{{ is_state('fan.masterbedroom','on') }}"
+                then:
+                  - action: fan.turn_off
+                    target: { entity_id: fan.masterbedroom }
+                else:
+                  - action: fan.set_percentage
+                    target: { entity_id: fan.masterbedroom }
+                    data: { percentage: 50 }
+          # B4 bottom-right -> dim light DOWN
+          - conditions: "{{ trigger.event.data.endpoint_id == 4 }}"
+            sequence:
+              - action: button.press
+                target: { entity_id: button.masterbedroom_light_dim_down }

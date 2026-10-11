@@ -21,3 +21,9 @@ docs/
 # Secrets -- WiFi / MQTT credentials (NEVER publish)
 secrets.h
 fan_remote/secrets.h
+
+# Credentials reference -- HA token, SSH password, etc. (NEVER publish)
+CLAUDE.md
+CLAUDE.md.bak
+*.local.md
+credentials*.md

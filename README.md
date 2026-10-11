@@ -10,7 +10,7 @@ Built and tested against the **VEVOR 84″ ceiling fan** (6-speed, reversible, w
 - **Multiple fans** (e.g. `masterbedroom`, `patio`), each with its own button set
 - **Flash persistence** + baked-in defaults (a reflash restores everything)
 - **WiFi web UI** with live status, plus a simple HTTP API
-- **Home Assistant** integration via `rest_command` (no broker/add-on needed)
+- **Home Assistant** native `fan`/`light`/`select` entities via a `rest_command` package (no broker needed)
 
 ## Parts
 - **ESP32-C3 SuperMini** — https://www.amazon.com/dp/B0D47G24W3
@@ -55,12 +55,18 @@ Reach it at **`http://vevor-fan-hub.local/`** or its fixed IP.
 - `GET /clear?fan=<fan>` · `GET /clear?all=1` — clear buttons
 
 ## Home Assistant
-No add-on or broker needed. In `homeassistant/fan_rf.yaml`:
-1. Replace `ESP_IP` with the ESP's fixed IP.
-2. Paste into `configuration.yaml`.
-3. Developer Tools → YAML → **Check Configuration**, then **Restart**.
+Deploy `homeassistant/fan_rf.yaml` as a **package** at `/config/packages/fan_rf.yaml` (enable packages with
+`homeassistant: packages: !include_dir_named packages`). Set the ESP IP in the `rest_command` URL, check
+config, and restart.
 
-You get `button.masterbedroom_off`, `button.patio_3`, `button.masterbedroom_dim_plus`, … for dashboards/automations/voice.
+You get **native entities** built on the one-way RF (all state is optimistic / last-sent):
+- `fan.masterbedroom`, `fan.patio` — 6-speed slider, on/off, forward/reverse direction, `wind`/`home` presets
+- `input_select.masterbedroom_timer`, `input_select.patio_timer` — 1h/2h/4h/8h sleep-timer dropdowns (a bundled automation fires the RF on change)
+- `light.masterbedroom_fan_light` + `button.masterbedroom_light_dim_up` / `…_dim_down`
+- `fan.livingroom` (6 speeds, reverse, `wind` preset) + `light.livingroom_fan_light` + `button.livingroom_light_dim_up` / `…_dim_down`
+
+Expose the fans/light to Assist for voice + MCP control. Requires the modern `template:` integration —
+HA 2026.x no longer creates entities from the legacy `platform: template` for fans/lights.
 
 ## Protocol notes
 - 433.92 MHz, OOK/ASK, rc-switch **protocol 2**, 32-bit, ~498 µs pulse. **Fixed-code.**
